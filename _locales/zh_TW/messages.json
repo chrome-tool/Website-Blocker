@@ -1,0 +1,9 @@
+{
+    "Name": {
+      "message": "网站拦截"
+    },
+    "Description": {
+      "message": "拦截指定的网站并且可以自定义拦截时间"
+    }
+  }
+  

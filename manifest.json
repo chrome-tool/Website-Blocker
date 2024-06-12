@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_Name__",
+  "version": "1.0.0",
+  "default_locale": "en",
+  "description": "__MSG_Description__",
+  "permissions": ["storage", "webNavigation"],
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "assets/icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "assets/js/background-wrapper.js"
+  }
+}
