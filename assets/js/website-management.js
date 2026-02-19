@@ -1,95 +1,142 @@
-document.addEventListener("DOMContentLoaded", async function () {
-  document.getElementById("addButton").addEventListener("click", addWebsite);
-  document
-    .getElementById("websiteInput")
-    .addEventListener("change", checkInputValue);
+﻿document.addEventListener("DOMContentLoaded", async () => {
+  const addButton = document.getElementById("addButton");
+  const websiteInput = document.getElementById("websiteInput");
+
+  addButton.addEventListener("click", addWebsite);
+  websiteInput.addEventListener("keydown", async (event) => {
+    if (event.key === "Enter") {
+      await addWebsite();
+    }
+  });
+
   await loadBlockedSites();
 });
 
 async function addWebsite() {
-  const websiteInput = document.getElementById("websiteInput").value;
-  if (!websiteInput) {
-    alert("Please Input Valid URL Or Hostname!");
+  const websiteInput = document.getElementById("websiteInput");
+  const raw = websiteInput.value.trim();
+
+  if (!raw) {
+    setFeedback("Please enter at least one domain.", "error");
     return;
   }
-  let hostname;
-  if (validateDomain(websiteInput)) {
-    hostname = websiteInput;
-  } else {
-    hostname = new URL(websiteInput).hostname;
+
+  const candidates = raw
+    .split(/[\s,]+/)
+    .map((item) => extractHostname(item))
+    .filter(Boolean);
+
+  if (candidates.length === 0) {
+    setFeedback("No valid domain detected.", "error");
+    return;
   }
-  await chrome.runtime.sendMessage({
-    action: "saveSite",
-    hostname: hostname,
-  });
+
+  let addedCount = 0;
+  for (const hostname of candidates) {
+    const response = await chrome.runtime.sendMessage({
+      action: "saveSite",
+      hostname,
+    });
+
+    if (response?.ok) {
+      addedCount += 1;
+    }
+  }
+
+  websiteInput.value = "";
   await loadBlockedSites();
+
+  if (addedCount === 0) {
+    setFeedback("All websites were already in the blocked list.", "info");
+    return;
+  }
+
+  setFeedback(`Added ${addedCount} website(s).`, "success");
 }
 
 async function loadBlockedSites() {
-  const response = await chrome.runtime.sendMessage({
-    action: "getBlockedSites",
-  });
+  const response = await chrome.runtime.sendMessage({ action: "getBlockedSites" });
+  const blockedSites = response?.blockedSites ?? [];
   const blockedSitesList = document.getElementById("blockedSitesList");
+
   blockedSitesList.innerHTML = "";
-  if (response?.blockedSites?.length > 0) {
-    const table = document.createElement("table");
-    response.blockedSites.forEach(function (hostname, index) {
-      const tr = document.createElement("tr");
-      const td1 = document.createElement("td");
-      const td2 = document.createElement("td");
-      const td3 = document.createElement("td");
-      const span = document.createElement("span");
-      span.className = "domain-container";
-      span.textContent = hostname;
-      td1.style.width = "0.1em";
-      td1.innerHTML = index + 1 + ".";
-      td2.style.textAlign = "left";
-      td2.style.width = "20em";
-      td2.appendChild(span);
-      const deleteButton = document.createElement("button");
-      deleteButton.textContent = "Delete";
-      deleteButton.className = "delete";
-      td3.style.textAlign = "right";
-      td3.appendChild(deleteButton);
-      deleteButton.addEventListener("click", async function () {
-        if (confirm("Can You Confirm To Delete It?")) {
-          await deleteBlockedSite(hostname);
-        }
-      });
-      tr.appendChild(td1);
-      tr.appendChild(td2);
-      tr.appendChild(td3);
-      table.appendChild(tr);
-    });
-    blockedSitesList.appendChild(table);
-  } else {
-    const span = document.createElement("span");
-    span.textContent = "No sites blocked.";
-    span.style.marginLeft = "1.5em";
-    blockedSitesList.appendChild(span);
+
+  if (blockedSites.length === 0) {
+    blockedSitesList.innerHTML = '<p class="empty">No sites blocked yet.</p>';
+    return;
   }
+
+  const table = document.createElement("table");
+
+  blockedSites.forEach((hostname, index) => {
+    const row = document.createElement("tr");
+
+    const indexCell = document.createElement("td");
+    indexCell.className = "index";
+    indexCell.textContent = `${index + 1}.`;
+
+    const domainCell = document.createElement("td");
+    domainCell.className = "domain";
+    domainCell.textContent = hostname;
+
+    const actionCell = document.createElement("td");
+    actionCell.className = "actions";
+
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "Delete";
+    deleteButton.className = "delete";
+    deleteButton.addEventListener("click", async () => {
+      await deleteBlockedSite(hostname);
+    });
+
+    actionCell.appendChild(deleteButton);
+    row.appendChild(indexCell);
+    row.appendChild(domainCell);
+    row.appendChild(actionCell);
+    table.appendChild(row);
+  });
+
+  blockedSitesList.appendChild(table);
 }
 
 async function deleteBlockedSite(hostname) {
-  await chrome.runtime.sendMessage({
+  const response = await chrome.runtime.sendMessage({
     action: "deleteBlockedSite",
-    hostname: hostname,
+    hostname,
   });
+
+  if (response?.ok) {
+    setFeedback(`Removed ${hostname}.`, "info");
+  }
+
   await loadBlockedSites();
 }
 
-function checkInputValue(e) {
-  const url = e.target.value;
-  if (url && !validateDomain(url) && !validateURL(url)) {
-    alert("Please Input Valid url Or Hostname!");
-    return;
+function extractHostname(value) {
+  if (!value || typeof value !== "string") {
+    return "";
+  }
+
+  let input = value.trim().toLowerCase();
+  if (!input) {
+    return "";
+  }
+
+  if (!/^https?:\/\//.test(input)) {
+    input = `https://${input}`;
+  }
+
+  try {
+    const hostname = new URL(input).hostname.replace(/^www\./, "");
+    const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
+    return domainRegex.test(hostname) ? hostname : "";
+  } catch {
+    return "";
   }
 }
-function validateDomain(domain) {
-  const domainRegex = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return domainRegex.test(domain);
-}
-function validateURL(url) {
-  const urlRegex = /^(ftp|http|https):\/\/[^ "]+$/;
-  return urlRegex.test(url);
+
+function setFeedback(message, type) {
+  const feedback = document.getElementById("feedback");
+  feedback.textContent = message;
+  feedback.className = `feedback ${type}`;
 }

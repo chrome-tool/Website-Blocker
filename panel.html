@@ -1,0 +1,105 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Website Blocker Panel</title>
+    <link rel="stylesheet" href="./assets/css/panel.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="header card">
+        <h1>Website Blocker Dashboard</h1>
+        <p>Browsing tracking is always on. Blocking can be toggled anytime.</p>
+      </header>
+
+      <section class="card status-card">
+        <div>
+          <p class="label">Blocking status</p>
+          <p id="statusText" class="status inactive">Inactive</p>
+        </div>
+        <label class="switch" aria-label="toggle blocking">
+          <input type="checkbox" id="toggleSwitch" />
+          <span class="slider"></span>
+        </label>
+      </section>
+
+      <section class="card timer-card">
+        <label>Timer</label>
+        <div class="timer-row">
+          <input id="timerHours" type="number" min="0" step="1" placeholder="Hours" />
+          <input id="timerMinutes" type="number" min="0" max="59" step="1" placeholder="Minutes" />
+          <button id="startTimerButton" class="primary">Start</button>
+        </div>
+        <p id="timerDisplay" class="timer-display">00:00:00</p>
+      </section>
+
+      <section class="card dashboard-card">
+        <h2>Dashboard</h2>
+        <div class="metrics">
+          <article class="metric">
+            <p class="metric-head"><span class="metric-icon">BT</span> Block Time Today</p>
+            <p id="metricBlockToday" class="metric-value">0.0h</p>
+          </article>
+          <article class="metric">
+            <p class="metric-head"><span class="metric-icon">BA</span> Block Time Total</p>
+            <p id="metricBlockTotal" class="metric-value">0.0h</p>
+          </article>
+          <article class="metric">
+            <p class="metric-head"><span class="metric-icon">TD</span> Browse Today</p>
+            <p id="metricBrowseToday" class="metric-value">0.0h</p>
+          </article>
+          <article class="metric">
+            <p class="metric-head"><span class="metric-icon">TA</span> Browse Total</p>
+            <p id="metricBrowseTotal" class="metric-value">0.0h</p>
+          </article>
+          <article class="metric">
+            <p class="metric-head"><span class="metric-icon">CT</span> Blocks Today</p>
+            <p id="metricEventsToday" class="metric-value">0</p>
+          </article>
+          <article class="metric">
+            <p class="metric-head"><span class="metric-icon">CA</span> Blocks Total</p>
+            <p id="metricEventsTotal" class="metric-value">0</p>
+          </article>
+          <article class="metric">
+            <p class="metric-head"><span class="metric-icon">FS</span> Focus Sessions</p>
+            <p id="metricSessions" class="metric-value">0</p>
+          </article>
+          <article class="metric">
+            <p class="metric-head"><span class="metric-icon">BS</span> Blocked Sites</p>
+            <p id="metricSites" class="metric-value">0</p>
+          </article>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-head">
+            <h3>Website Browsing Time</h3>
+            <p id="browsingTotal" class="chart-sub">0 min total</p>
+          </div>
+          <div id="browsingChart" class="chart"></div>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-head">
+            <h3>Most Blocked Websites</h3>
+            <p id="blockedTotal" class="chart-sub">0 blocks total</p>
+          </div>
+          <div id="blockedChart" class="chart"></div>
+        </div>
+      </section>
+
+      <section class="card site-card">
+        <h2>Blocked Websites</h2>
+        <div class="site-input-row">
+          <input id="websiteInput" type="text" placeholder="example.com, youtube.com" />
+          <button id="addButton" class="primary">Add</button>
+        </div>
+        <div id="blockedSitesList" class="sites-list"></div>
+      </section>
+
+      <p id="feedback" class="feedback" aria-live="polite"></p>
+    </main>
+
+    <script src="./assets/js/panel.js"></script>
+  </body>
+</html>

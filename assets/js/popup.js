@@ -1,103 +1,131 @@
-let timer;
-document.addEventListener("DOMContentLoaded", async function () {
+﻿let timer = null;
+
+document.addEventListener("DOMContentLoaded", async () => {
   const toggleSwitch = document.getElementById("toggleSwitch");
   const startTimerButton = document.getElementById("startTimerButton");
   const openManagementButton = document.getElementById("openManagementButton");
-  toggleSwitch.checked = await isBlocked();
-  toggleSwitch.addEventListener("change", async function (e) {
-    if (!e.target.checked) {
-      if (timer) clearInterval(timer);
-      const timerDisplay = document.getElementById("timer");
-      timerDisplay.innerText = "00:00:00";
-      await setEndtime(0);
+  const timerInput = document.getElementById("timerMinutes");
+
+  await refreshState();
+
+  toggleSwitch.addEventListener("change", async (event) => {
+    const enabled = event.target.checked;
+    await chrome.runtime.sendMessage({ action: "blockSite", isBlocked: enabled });
+
+    if (!enabled) {
+      stopTimer();
+      displayTimeLeft(0);
+      setFeedback("Blocking disabled.", "info");
+    } else {
+      setFeedback("Blocking enabled.", "success");
     }
-    await chrome.runtime.sendMessage({
-      action: "blockSite",
-      isBlocked: e.target.checked,
-    });
+
+    await refreshState();
   });
-  if (timer) clearInterval(timer);
-  const endTime = await getEndtime();
-  if (endTime > 0) {
-    timer = setInterval(() => {
-      const secondsLeft = Math.round((endTime - Date.now()) / 1000);
-      if (secondsLeft < 0) {
-        if (timer) clearInterval(timer);
-        toggleSwitch.checked = false;
-        return;
-      }
-      displayTimeLeft(secondsLeft);
-    }, 1000);
-  }
+
   startTimerButton.addEventListener("click", startTimer);
-  openManagementButton.addEventListener("click", function () {
-    chrome.runtime.sendMessage({ action: "openWebsiteManagement" });
+
+  timerInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      startTimer();
+    }
+  });
+
+  openManagementButton.addEventListener("click", async () => {
+    await chrome.runtime.sendMessage({ action: "openWebsiteManagement" });
   });
 });
 
+async function refreshState() {
+  const { isBlocked = false, endtime = 0 } = await chrome.storage.sync.get(["isBlocked", "endtime"]);
+  const toggleSwitch = document.getElementById("toggleSwitch");
+
+  toggleSwitch.checked = Boolean(isBlocked);
+  updateStatusText(Boolean(isBlocked));
+
+  if (Number(endtime) > Date.now()) {
+    startCountdown(Number(endtime));
+  } else {
+    stopTimer();
+    displayTimeLeft(0);
+  }
+}
+
 async function startTimer() {
-  const timerMinutes = document.getElementById("timerMinutes").value;
-  if (!timerMinutes || timerMinutes <= 0) {
-    alert("Please Input Valid Minutes");
+  const timerInput = document.getElementById("timerMinutes");
+  const timerMinutes = Number(timerInput.value);
+
+  if (!Number.isFinite(timerMinutes) || timerMinutes <= 0) {
+    setFeedback("Please enter a valid number of minutes.", "error");
     return;
   }
-  await chrome.runtime.sendMessage({
+
+  const response = await chrome.runtime.sendMessage({
     action: "startTimer",
-    minutes: parseInt(timerMinutes),
+    minutes: timerMinutes,
   });
 
-  const toggleSwitch = document.getElementById("toggleSwitch");
-  toggleSwitch.checked = true;
-  await chrome.runtime.sendMessage({
-    action: "blockSite",
-    isBlocked: true,
-  });
+  if (!response?.ok || !response.endtime) {
+    setFeedback("Unable to start timer. Please try again.", "error");
+    return;
+  }
 
-  if (timer) clearInterval(timer);
-  const duration = parseInt(timerMinutes) * 60 * 1000;
-  const endTime = Date.now() + duration;
-  await setEndtime(endTime);
-  displayTimeLeft(Math.round((endTime - Date.now()) / 1000));
-  timer = setInterval(() => {
+  document.getElementById("toggleSwitch").checked = true;
+  updateStatusText(true);
+  startCountdown(response.endtime);
+  setFeedback(`Blocking enabled for ${Math.round(timerMinutes)} minute(s).`, "success");
+}
+
+function startCountdown(endTime) {
+  stopTimer();
+
+  const tick = async () => {
     const secondsLeft = Math.round((endTime - Date.now()) / 1000);
-    if (secondsLeft < 0) {
-      if (timer) clearInterval(timer);
+    if (secondsLeft <= 0) {
+      stopTimer();
+      displayTimeLeft(0);
+      updateStatusText(false);
       document.getElementById("toggleSwitch").checked = false;
+      await chrome.storage.sync.set({ endtime: 0, isBlocked: false });
+      setFeedback("Timer finished. Blocking disabled.", "info");
       return;
     }
+
     displayTimeLeft(secondsLeft);
-  }, 1000);
+  };
+
+  tick();
+  timer = setInterval(tick, 1000);
+}
+
+function stopTimer() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
 }
 
 function displayTimeLeft(seconds) {
-  let timerDisplay = document.getElementById("timer");
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
-  const display = `${hours < 10 ? "0" : ""}${hours}:${
-    minutes < 10 ? "0" : ""
-  }${minutes}:${remainingSeconds < 10 ? "0" : ""}${remainingSeconds}`;
-  timerDisplay.textContent = display;
+  const total = Math.max(0, Number(seconds) || 0);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remainingSeconds = total % 60;
+  const display = `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`;
+  document.getElementById("timer").textContent = display;
 }
 
-function validateDomain(domain) {
-  const domainRegex = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return domainRegex.test(domain);
+function pad(value) {
+  return value < 10 ? `0${value}` : `${value}`;
 }
 
-function validateURL(url) {
-  const urlRegex = /^(ftp|http|https):\/\/[^ "]+$/;
-  return urlRegex.test(url);
+function updateStatusText(isBlocked) {
+  const statusText = document.getElementById("statusText");
+  statusText.textContent = isBlocked ? "Active" : "Inactive";
+  statusText.className = `status-text ${isBlocked ? "active" : "inactive"}`;
 }
 
-async function isBlocked() {
-  return (await chrome.storage.sync.get("isBlocked")).isBlocked ?? false;
-}
-
-async function getEndtime() {
-  return (await chrome.storage.sync.get("endtime")).endtime ?? 0;
-}
-
-async function setEndtime(endtime) {
-  await chrome.storage.sync.set({ endtime: endtime });
+function setFeedback(message, type) {
+  const feedback = document.getElementById("feedback");
+  feedback.textContent = message;
+  feedback.className = `feedback ${type}`;
 }

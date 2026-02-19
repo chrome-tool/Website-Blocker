@@ -1,35 +1,41 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Website Blocker</title>
     <link rel="stylesheet" type="text/css" href="./assets/css/popup.css" />
     <script src="./assets/js/popup.js"></script>
   </head>
-
   <body>
     <div class="container">
-      <h1>Website Blocker</h1>
-      <div class="switch-button-container">
-        <button class="blocker-button confirm" id="openManagementButton">
-          Add Block Websit
-        </button>
-        
-        <label class="switch">
+      <header class="hero">
+        <h1>Website Blocker</h1>
+        <p class="subtitle">Focus mode for distracting websites</p>
+      </header>
+
+      <section class="status-card">
+        <div>
+          <p class="status-label">Current status</p>
+          <p id="statusText" class="status-text">Inactive</p>
+        </div>
+        <label class="switch" aria-label="Enable blocking">
           <input type="checkbox" id="toggleSwitch" />
           <span class="slider round"></span>
         </label>
-        <label style="margin-left: 10px">Active</label>
-      </div>
-      <div class="input-container">
-        <label for="websiteInput">Set Block Time (minutes):</label>
-        <input type="number" id="timerMinutes" placeholder="e.g., 30" />
-      </div>
-      <div class="button-container">
-        <button class="blocker-button add" id="startTimerButton">
-          Start Countdown
-        </button>
-        <div id="timer">00:00:00</div>
-      </div>
+      </section>
+
+      <section class="timer-card">
+        <label for="timerMinutes">Block duration (minutes)</label>
+        <input type="number" id="timerMinutes" min="1" step="1" placeholder="e.g. 30" />
+        <div class="timer-actions">
+          <button class="blocker-button primary" id="startTimerButton">Start countdown</button>
+          <button class="blocker-button ghost" id="openManagementButton">Manage blocked sites</button>
+        </div>
+        <div id="timer" class="timer-display">00:00:00</div>
+      </section>
+
+      <p id="feedback" class="feedback" aria-live="polite"></p>
     </div>
   </body>
 </html>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -9,20 +9,28 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>Website Management</h1>
+        <h1>Manage Blocked Websites</h1>
+        <p>Add one or many domains. Example: facebook.com, youtube.com</p>
       </div>
 
       <div class="input-container">
-        <label for="websiteInput"> Enter websites:</label>
-        <input type="text" id="websiteInput" placeholder="e.g., example.com" />
+        <label for="websiteInput">Websites</label>
+        <input
+          type="text"
+          id="websiteInput"
+          placeholder="example.com or https://example.com"
+          autocomplete="off"
+        />
       </div>
 
       <div class="button-container">
-        <button id="addButton" class="confirm ">Add</button>
+        <button id="addButton" class="confirm">Add website</button>
       </div>
 
-      <h2>Blocked Sites:</h2>
-      <div id="blockedSitesList"></div>
+      <p id="feedback" class="feedback" aria-live="polite"></p>
+
+      <h2>Blocked Sites</h2>
+      <div id="blockedSitesList" class="blocked-list"></div>
     </div>
 
     <script src="./assets/js/website-management.js"></script>
