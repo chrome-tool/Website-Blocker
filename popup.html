@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -27,10 +27,20 @@
 
       <section class="timer-card">
         <label for="timerMinutes">Block duration (minutes)</label>
-        <input type="number" id="timerMinutes" min="1" step="1" placeholder="e.g. 30" />
+        <input
+          type="number"
+          id="timerMinutes"
+          min="1"
+          step="1"
+          placeholder="e.g. 30"
+        />
         <div class="timer-actions">
-          <button class="blocker-button primary" id="startTimerButton">Start countdown</button>
-          <button class="blocker-button ghost" id="openManagementButton">Manage blocked sites</button>
+          <button class="blocker-button primary" id="startTimerButton">
+            Start countdown
+          </button>
+          <button class="blocker-button ghost" id="openManagementButton">
+            Manage blocked sites
+          </button>
         </div>
         <div id="timer" class="timer-display">00:00:00</div>
       </section>

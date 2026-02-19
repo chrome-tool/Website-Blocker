@@ -34,7 +34,11 @@ let browsingSession = null;
 init();
 
 async function init() {
-  const syncData = await chrome.storage.sync.get(["blockedSites", "isBlocked", "endtime"]);
+  const syncData = await chrome.storage.sync.get([
+    "blockedSites",
+    "isBlocked",
+    "endtime",
+  ]);
   const localData = await chrome.storage.local.get([
     DASHBOARD_STATS_KEY,
     BROWSING_STATS_KEY,
@@ -49,7 +53,10 @@ async function init() {
 
   if (blockingEnabled && !dashboardStats.lastActivatedAt) {
     dashboardStats.lastActivatedAt = Date.now();
-    addActiveDaysInRange(dashboardStats.lastActivatedAt, dashboardStats.lastActivatedAt);
+    addActiveDaysInRange(
+      dashboardStats.lastActivatedAt,
+      dashboardStats.lastActivatedAt,
+    );
     await persistStats();
   }
 
@@ -66,7 +73,9 @@ function normalizeBlockedList(list) {
     return [];
   }
 
-  return [...new Set(list.map((site) => normalizeHostname(site)).filter(Boolean))];
+  return [
+    ...new Set(list.map((site) => normalizeHostname(site)).filter(Boolean)),
+  ];
 }
 
 function normalizeHostname(value) {
@@ -140,7 +149,9 @@ function normalizeDayKey(value) {
 function normalizeStats(raw) {
   const next = {
     totalActiveMs: Number(raw?.totalActiveMs) || 0,
-    activeDayKeys: Array.isArray(raw?.activeDayKeys) ? raw.activeDayKeys.filter(Boolean) : [],
+    activeDayKeys: Array.isArray(raw?.activeDayKeys)
+      ? raw.activeDayKeys.filter(Boolean)
+      : [],
     sessionCount: Number(raw?.sessionCount) || 0,
     lastActivatedAt: Number(raw?.lastActivatedAt) || 0,
     blockDailyMs: normalizeNumberMap(raw?.blockDailyMs, normalizeDayKey),
@@ -210,7 +221,8 @@ async function finalizeActiveSession(endMs = Date.now()) {
   addActiveDaysInRange(startMs, endMs);
 
   splitDurationByDay(startMs, endMs, (dayKey, duration) => {
-    dashboardStats.blockDailyMs[dayKey] = (dashboardStats.blockDailyMs[dayKey] || 0) + duration;
+    dashboardStats.blockDailyMs[dayKey] =
+      (dashboardStats.blockDailyMs[dayKey] || 0) + duration;
   });
 
   dashboardStats.lastActivatedAt = 0;
@@ -246,7 +258,8 @@ async function closeBrowsingSession(endMs = Date.now()) {
       (browsingStats.siteMs[browsingSession.hostname] || 0) + elapsed;
 
     splitDurationByDay(browsingSession.startedAt, endMs, (dayKey, duration) => {
-      browsingStats.dailyMs[dayKey] = (browsingStats.dailyMs[dayKey] || 0) + duration;
+      browsingStats.dailyMs[dayKey] =
+        (browsingStats.dailyMs[dayKey] || 0) + duration;
     });
 
     await persistBrowsingStats();
@@ -258,7 +271,10 @@ async function closeBrowsingSession(endMs = Date.now()) {
 async function refreshBrowsingSession() {
   let activeTab;
   try {
-    [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    [activeTab] = await chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
+    });
   } catch {
     await closeBrowsingSession();
     return;
@@ -296,7 +312,10 @@ function bindBrowsingEvents() {
   });
 
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (tab.active && (typeof changeInfo.url === "string" || changeInfo.status === "complete")) {
+    if (
+      tab.active &&
+      (typeof changeInfo.url === "string" || changeInfo.status === "complete")
+    ) {
       refreshBrowsingSession();
     }
   });
@@ -328,7 +347,8 @@ function buildBrowsingSnapshot() {
     const liveMs = Math.max(0, now - browsingSession.startedAt);
 
     totalMs += liveMs;
-    siteMs[browsingSession.hostname] = (siteMs[browsingSession.hostname] || 0) + liveMs;
+    siteMs[browsingSession.hostname] =
+      (siteMs[browsingSession.hostname] || 0) + liveMs;
 
     splitDurationByDay(browsingSession.startedAt, now, (dayKey, duration) => {
       dailyMs[dayKey] = (dailyMs[dayKey] || 0) + duration;
@@ -348,7 +368,9 @@ function buildBrowsingSnapshot() {
     totalMs,
     totalHours: Number((totalMs / (1000 * 60 * 60)).toFixed(1)),
     todayMs: dailyMs[todayKey] || 0,
-    todayHours: Number(((dailyMs[todayKey] || 0) / (1000 * 60 * 60)).toFixed(1)),
+    todayHours: Number(
+      ((dailyMs[todayKey] || 0) / (1000 * 60 * 60)).toFixed(1),
+    ),
     topSites,
   };
 }
@@ -363,9 +385,13 @@ function buildBlockSnapshot() {
     const liveMs = Math.max(0, now - dashboardStats.lastActivatedAt);
     totalBlockMs += liveMs;
 
-    splitDurationByDay(dashboardStats.lastActivatedAt, now, (dayKey, duration) => {
-      dailyBlockMs[dayKey] = (dailyBlockMs[dayKey] || 0) + duration;
-    });
+    splitDurationByDay(
+      dashboardStats.lastActivatedAt,
+      now,
+      (dayKey, duration) => {
+        dailyBlockMs[dayKey] = (dailyBlockMs[dayKey] || 0) + duration;
+      },
+    );
   }
 
   const todayBlockMs = dailyBlockMs[todayKey] || 0;
@@ -396,14 +422,17 @@ function buildBlockEventSnapshot() {
 async function recordBlockEvent(hostname) {
   const todayKey = getDayKey(Date.now());
   blockEventStats.totalEvents += 1;
-  blockEventStats.siteEvents[hostname] = (blockEventStats.siteEvents[hostname] || 0) + 1;
-  blockEventStats.dailyEvents[todayKey] = (blockEventStats.dailyEvents[todayKey] || 0) + 1;
+  blockEventStats.siteEvents[hostname] =
+    (blockEventStats.siteEvents[hostname] || 0) + 1;
+  blockEventStats.dailyEvents[todayKey] =
+    (blockEventStats.dailyEvents[todayKey] || 0) + 1;
   await persistBlockEventStats();
 }
 
 function isSiteBlocked(hostname) {
   return blockedSites.some(
-    (blockedSite) => hostname === blockedSite || hostname.endsWith(`.${blockedSite}`)
+    (blockedSite) =>
+      hostname === blockedSite || hostname.endsWith(`.${blockedSite}`),
   );
 }
 
@@ -457,7 +486,8 @@ async function setBlockingState(isBlocked) {
 }
 
 async function applyBlockingListener() {
-  const hasListener = chrome.webNavigation.onBeforeNavigate.hasListener(executeBlock);
+  const hasListener =
+    chrome.webNavigation.onBeforeNavigate.hasListener(executeBlock);
 
   if (blockingEnabled && !hasListener) {
     chrome.webNavigation.onBeforeNavigate.addListener(executeBlock);
@@ -506,7 +536,9 @@ async function syncAlarmFromEndtime(endtime) {
 
 async function configurePanelBehavior() {
   if (chrome.sidePanel?.setPanelBehavior) {
-    await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
+    await chrome.sidePanel
+      .setPanelBehavior({ openPanelOnActionClick: true })
+      .catch(() => {});
   }
 }
 
@@ -539,7 +571,7 @@ function executeBlock(details) {
   recordBlockEvent(hostname);
 
   const redirectUrl = `${blockedPageUrl}?site=${encodeURIComponent(hostname)}&url=${encodeURIComponent(
-    details.url
+    details.url,
   )}`;
 
   chrome.tabs.update(details.tabId, { url: redirectUrl }).catch(() => {});
@@ -566,7 +598,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse(await saveSite(request.hostname));
         break;
       case "blockSite":
-        sendResponse({ ok: true, isBlocked: await setBlockingState(request.isBlocked) });
+        sendResponse({
+          ok: true,
+          isBlocked: await setBlockingState(request.isBlocked),
+        });
         break;
       case "startTimer":
         sendResponse(await startTimer(request.minutes));
@@ -585,7 +620,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           await setBlockingState(false);
         }
 
-        const { endtime: syncedEndtime = 0 } = await chrome.storage.sync.get(["endtime"]);
+        const { endtime: syncedEndtime = 0 } = await chrome.storage.sync.get([
+          "endtime",
+        ]);
         sendResponse({
           ok: true,
           isBlocked: blockingEnabled,

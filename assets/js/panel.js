@@ -78,7 +78,10 @@ async function onStartTimer() {
     return;
   }
 
-  const response = await chrome.runtime.sendMessage({ action: "startTimer", minutes: totalMinutes });
+  const response = await chrome.runtime.sendMessage({
+    action: "startTimer",
+    minutes: totalMinutes,
+  });
   if (!response?.ok) {
     setFeedback("Unable to start timer.");
     return;
@@ -107,19 +110,26 @@ async function onAddSites() {
 
   let added = 0;
   for (const hostname of hostnames) {
-    const response = await chrome.runtime.sendMessage({ action: "saveSite", hostname });
+    const response = await chrome.runtime.sendMessage({
+      action: "saveSite",
+      hostname,
+    });
     if (response?.ok) {
       added += 1;
     }
   }
 
   els.websiteInput.value = "";
-  setFeedback(added > 0 ? `Added ${added} website(s).` : "All domains already exist.");
+  setFeedback(
+    added > 0 ? `Added ${added} website(s).` : "All domains already exist.",
+  );
   await refreshPanel();
 }
 
 async function refreshPanel() {
-  const response = await chrome.runtime.sendMessage({ action: "getDashboardData" });
+  const response = await chrome.runtime.sendMessage({
+    action: "getDashboardData",
+  });
   if (!response?.ok) {
     return;
   }
@@ -127,7 +137,12 @@ async function refreshPanel() {
   renderStatus(response.isBlocked);
   renderCountdown(response.endtime);
   renderSites(response.blockedSites || []);
-  renderMetrics(response.blocking || {}, response.browsing || {}, response.blockEvents || {}, response.blockedSites || []);
+  renderMetrics(
+    response.blocking || {},
+    response.browsing || {},
+    response.blockEvents || {},
+    response.blockedSites || [],
+  );
   renderBrowsingChart(response.browsing || {});
   renderBlockedChart(response.blockEvents || {});
 }
@@ -152,7 +167,10 @@ function renderCountdown(endtime) {
     if (secondsLeft <= 0) {
       clearCountdown();
       els.timerDisplay.textContent = "00:00:00";
-      await chrome.runtime.sendMessage({ action: "blockSite", isBlocked: false });
+      await chrome.runtime.sendMessage({
+        action: "blockSite",
+        isBlocked: false,
+      });
       await refreshPanel();
       return;
     }
@@ -185,7 +203,8 @@ function renderSites(sites) {
   els.blockedSitesList.innerHTML = "";
 
   if (!sites.length) {
-    els.blockedSitesList.innerHTML = '<p class="empty">No blocked websites yet.</p>';
+    els.blockedSitesList.innerHTML =
+      '<p class="empty">No blocked websites yet.</p>';
     return;
   }
 
@@ -205,7 +224,10 @@ function renderSites(sites) {
     btn.className = "delete";
     btn.textContent = "Delete";
     btn.addEventListener("click", async () => {
-      await chrome.runtime.sendMessage({ action: "deleteBlockedSite", hostname: site });
+      await chrome.runtime.sendMessage({
+        action: "deleteBlockedSite",
+        hostname: site,
+      });
       setFeedback(`Removed ${site}.`);
       await refreshPanel();
     });
@@ -222,8 +244,12 @@ function renderMetrics(blocking, browsing, blockEvents, blockedSites) {
   els.metricBlockTotal.textContent = `${(Number(blocking.totalBlockHours) || 0).toFixed(1)}h`;
   els.metricBrowseToday.textContent = `${(Number(browsing.todayHours) || 0).toFixed(1)}h`;
   els.metricBrowseTotal.textContent = `${(Number(browsing.totalHours) || 0).toFixed(1)}h`;
-  els.metricEventsToday.textContent = String(Number(blockEvents.todayEvents) || 0);
-  els.metricEventsTotal.textContent = String(Number(blockEvents.totalEvents) || 0);
+  els.metricEventsToday.textContent = String(
+    Number(blockEvents.todayEvents) || 0,
+  );
+  els.metricEventsTotal.textContent = String(
+    Number(blockEvents.totalEvents) || 0,
+  );
   els.metricSessions.textContent = String(Number(blocking.sessionCount) || 0);
   els.metricSites.textContent = String(blockedSites.length || 0);
 }
@@ -235,14 +261,20 @@ function renderBrowsingChart(browsing) {
 
   const topSites = Array.isArray(browsing.topSites) ? browsing.topSites : [];
   if (!topSites.length) {
-    els.browsingChart.innerHTML = '<p class="empty">No browsing time data yet.</p>';
+    els.browsingChart.innerHTML =
+      '<p class="empty">No browsing time data yet.</p>';
     return;
   }
 
   const maxMs = Math.max(...topSites.map((item) => Number(item.ms) || 0), 1);
 
   topSites.forEach((item) => {
-    const row = buildChartRow(item.site, Number(item.ms) || 0, maxMs, `${item.minutes}m`);
+    const row = buildChartRow(
+      item.site,
+      Number(item.ms) || 0,
+      maxMs,
+      `${item.minutes}m`,
+    );
     els.browsingChart.appendChild(row);
   });
 }
@@ -252,16 +284,26 @@ function renderBlockedChart(blockEvents) {
   els.blockedTotal.textContent = `${totalBlocks} blocks total`;
   els.blockedChart.innerHTML = "";
 
-  const topBlockedSites = Array.isArray(blockEvents.topBlockedSites) ? blockEvents.topBlockedSites : [];
+  const topBlockedSites = Array.isArray(blockEvents.topBlockedSites)
+    ? blockEvents.topBlockedSites
+    : [];
   if (!topBlockedSites.length) {
     els.blockedChart.innerHTML = '<p class="empty">No block events yet.</p>';
     return;
   }
 
-  const maxCount = Math.max(...topBlockedSites.map((item) => Number(item.count) || 0), 1);
+  const maxCount = Math.max(
+    ...topBlockedSites.map((item) => Number(item.count) || 0),
+    1,
+  );
 
   topBlockedSites.forEach((item) => {
-    const row = buildChartRow(item.site, Number(item.count) || 0, maxCount, `${item.count}x`);
+    const row = buildChartRow(
+      item.site,
+      Number(item.count) || 0,
+      maxCount,
+      `${item.count}x`,
+    );
     els.blockedChart.appendChild(row);
   });
 }
@@ -297,7 +339,9 @@ function buildChartRow(label, value, maxValue, valueText) {
 }
 
 function extractHostname(value) {
-  let input = String(value || "").trim().toLowerCase();
+  let input = String(value || "")
+    .trim()
+    .toLowerCase();
   if (!input) {
     return "";
   }
@@ -308,7 +352,8 @@ function extractHostname(value) {
 
   try {
     const hostname = new URL(input).hostname.replace(/^www\./, "");
-    const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
+    const domainRegex =
+      /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
     return domainRegex.test(hostname) ? hostname : "";
   } catch {
     return "";

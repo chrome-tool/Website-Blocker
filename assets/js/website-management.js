@@ -55,7 +55,9 @@ async function addWebsite() {
 }
 
 async function loadBlockedSites() {
-  const response = await chrome.runtime.sendMessage({ action: "getBlockedSites" });
+  const response = await chrome.runtime.sendMessage({
+    action: "getBlockedSites",
+  });
   const blockedSites = response?.blockedSites ?? [];
   const blockedSitesList = document.getElementById("blockedSitesList");
 
@@ -128,7 +130,8 @@ function extractHostname(value) {
 
   try {
     const hostname = new URL(input).hostname.replace(/^www\./, "");
-    const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
+    const domainRegex =
+      /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
     return domainRegex.test(hostname) ? hostname : "";
   } catch {
     return "";

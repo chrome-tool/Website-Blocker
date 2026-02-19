@@ -10,7 +10,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   toggleSwitch.addEventListener("change", async (event) => {
     const enabled = event.target.checked;
-    await chrome.runtime.sendMessage({ action: "blockSite", isBlocked: enabled });
+    await chrome.runtime.sendMessage({
+      action: "blockSite",
+      isBlocked: enabled,
+    });
 
     if (!enabled) {
       stopTimer();
@@ -37,7 +40,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function refreshState() {
-  const { isBlocked = false, endtime = 0 } = await chrome.storage.sync.get(["isBlocked", "endtime"]);
+  const { isBlocked = false, endtime = 0 } = await chrome.storage.sync.get([
+    "isBlocked",
+    "endtime",
+  ]);
   const toggleSwitch = document.getElementById("toggleSwitch");
 
   toggleSwitch.checked = Boolean(isBlocked);
@@ -73,7 +79,10 @@ async function startTimer() {
   document.getElementById("toggleSwitch").checked = true;
   updateStatusText(true);
   startCountdown(response.endtime);
-  setFeedback(`Blocking enabled for ${Math.round(timerMinutes)} minute(s).`, "success");
+  setFeedback(
+    `Blocking enabled for ${Math.round(timerMinutes)} minute(s).`,
+    "success",
+  );
 }
 
 function startCountdown(endTime) {
